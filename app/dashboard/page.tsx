@@ -59,8 +59,8 @@ export default async function DashboardPage() {
             href="/resources"
             icon={BookOpen}
             title="Resource library"
-            blurb="40+ verified GA providers."
-            ready={false}
+            blurb="Verified GA therapists, schools, doctors, nonprofits."
+            ready={true}
             accent="bg-coral-100 text-coral-600"
           />
           <FeatureTile
