@@ -97,11 +97,14 @@ export function OnboardingWizard({ initialProfile }: { initialProfile?: Partial<
       if (!user) throw new Error("Not signed in.");
 
       const path = `${user.id}/${Date.now()}.jpg`;
-      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+      // Pass the Blob directly — path is always unique so upsert isn't needed.
       const { error: upErr } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true, contentType: "image/jpeg" });
-      if (upErr) throw upErr;
+        .upload(path, blob, { contentType: "image/jpeg", cacheControl: "3600" });
+      if (upErr) {
+        console.error("[avatar upload] Supabase error:", upErr);
+        throw upErr;
+      }
 
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
       // Cache-bust so the cropped image shows immediately

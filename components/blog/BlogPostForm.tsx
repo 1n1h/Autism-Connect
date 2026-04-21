@@ -125,12 +125,15 @@ export function BlogPostForm({ initial, mode = "create" }: Props) {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in.");
-      const ext = file.name.split(".").pop() ?? "jpg";
+      const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("blog-images")
-        .upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
+        .upload(path, file, { cacheControl: "3600" });
+      if (upErr) {
+        console.error("[blog image upload] Supabase error:", upErr);
+        throw upErr;
+      }
       const { data: pub } = supabase.storage.from("blog-images").getPublicUrl(path);
       setFeaturedImage(`${pub.publicUrl}?t=${Date.now()}`);
     } catch (err) {
