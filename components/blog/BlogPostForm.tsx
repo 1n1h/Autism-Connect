@@ -98,12 +98,16 @@ export function BlogPostForm({ initial, mode = "create" }: Props) {
   function addYouTube() {
     const url = window.prompt("YouTube URL");
     if (!url) return;
-    const id = extractYouTubeId(url.trim());
+    const trimmed = url.trim();
+    const id = extractYouTubeId(trimmed);
     if (!id) {
       setError("Couldn't find a YouTube video ID in that URL.");
       return;
     }
-    insertAtCursor(`\n\n[[youtube:${id}]]\n\n`);
+    // Insert a bare URL on its own line — our parser auto-embeds these.
+    // Cleaner in the editor than the `[[youtube:ID]]` token.
+    const clean = `https://www.youtube.com/watch?v=${id}`;
+    insertAtCursor(`\n\n${clean}\n\n`);
   }
 
   async function handleFeaturedImage(file: File) {
@@ -316,8 +320,7 @@ export function BlogPostForm({ initial, mode = "create" }: Props) {
             onChange={(e) => setContent(e.target.value)}
             placeholder={
               "Share your story...\n\n" +
-              "Tip: use the toolbar above to add **bold**, *italic*, article links, or embed a YouTube video.\n\n" +
-              "Two blank lines = new paragraph."
+              "Tip: **bold**, *italic*, [link text](url). Paste a YouTube URL on its own line to embed it. Two blank lines = new paragraph."
             }
             rows={16}
             required
