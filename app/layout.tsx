@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Nunito } from "next/font/google";
 import "./globals.css";
+import { AIChatGate } from "@/components/ai/AIChatGate";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="en" className={`${fraunces.variable} ${nunito.variable}`}>
       <body className="font-sans bg-cream text-plum-800 overflow-x-hidden">
         {children}
+        <AIChatGate />
       </body>
     </html>
   );

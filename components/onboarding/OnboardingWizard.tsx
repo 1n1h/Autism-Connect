@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Upload, Check, ArrowRight, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CropModal } from "./CropModal";
 
 type Step = 0 | 1 | 2;
 
@@ -47,11 +48,45 @@ export function OnboardingWizard({ initialProfile }: { initialProfile?: Partial<
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const revokeRef = useRef<string | null>(null);
+
+  // Clean up any outstanding blob: URL when the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (revokeRef.current) URL.revokeObjectURL(revokeRef.current);
+    };
+  }, []);
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function handlePhotoUpload(file: File) {
+  function onFilePicked(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setError("That doesn't look like an image file.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Image is too large. Keep it under 10MB.");
+      return;
+    }
+    setError(null);
+    const url = URL.createObjectURL(file);
+    if (revokeRef.current) URL.revokeObjectURL(revokeRef.current);
+    revokeRef.current = url;
+    setCropSrc(url);
+  }
+
+  function closeCrop() {
+    if (revokeRef.current) {
+      URL.revokeObjectURL(revokeRef.current);
+      revokeRef.current = null;
+    }
+    setCropSrc(null);
+  }
+
+  async function handleCropConfirmed(blob: Blob) {
     setUploading(true);
     setError(null);
     try {
@@ -61,15 +96,17 @@ export function OnboardingWizard({ initialProfile }: { initialProfile?: Partial<
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in.");
 
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${user.id}/${Date.now()}.${ext}`;
+      const path = `${user.id}/${Date.now()}.jpg`;
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
       const { error: upErr } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true });
+        .upload(path, file, { upsert: true, contentType: "image/jpeg" });
       if (upErr) throw upErr;
 
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-      update("profile_photo_url", pub.publicUrl);
+      // Cache-bust so the cropped image shows immediately
+      update("profile_photo_url", `${pub.publicUrl}?t=${Date.now()}`);
+      closeCrop();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't upload photo.");
     } finally {
@@ -115,6 +152,12 @@ export function OnboardingWizard({ initialProfile }: { initialProfile?: Partial<
 
   return (
     <div className="w-full max-w-2xl">
+      <CropModal
+        src={cropSrc}
+        open={cropSrc !== null}
+        onCancel={closeCrop}
+        onConfirm={handleCropConfirmed}
+      />
       <StepDots step={step} />
 
       <div className="mt-6 rounded-4xl border border-plum-800/5 bg-white p-8 shadow-soft md:p-10">
@@ -152,7 +195,9 @@ export function OnboardingWizard({ initialProfile }: { initialProfile?: Partial<
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handlePhotoUpload(file);
+                      if (file) onFilePicked(file);
+                      // allow picking the same file again later
+                      e.target.value = "";
                     }}
                   />
                 </label>

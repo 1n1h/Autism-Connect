@@ -83,8 +83,8 @@ export default async function DashboardPage() {
             href="#ai"
             icon={Bot}
             title="AI guidance"
-            blurb="Ask anything, anytime."
-            ready={false}
+            blurb="Click the chat button — bottom-right, anytime."
+            ready={true}
             accent="bg-lavender-100 text-lavender-400"
           />
         </section>
