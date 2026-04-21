@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { createServiceClient } from "@/lib/supabase/server";
+import { sendWaitlistWelcome } from "@/lib/email/resend";
 
 /**
- * Waitlist stub route. Phase 1 only — persists to ./data/waitlist.json
- * so the form works end-to-end in local dev before Supabase is wired.
- *
- * Phase 2: replace the file I/O with Supabase `waitlist` table + Resend email.
+ * Waitlist API.
+ * - If Supabase env is set → writes to public.waitlist (service-role bypasses RLS
+ *   so the landing form works without a session) and sends welcome email.
+ * - Otherwise → falls back to the local JSON stub so Phase 1 dev keeps working.
  */
 
 type WaitlistEntry = {
@@ -20,8 +23,7 @@ const STORE = path.join(DATA_DIR, "waitlist.json");
 
 async function readStore(): Promise<WaitlistEntry[]> {
   try {
-    const raw = await fs.readFile(STORE, "utf8");
-    return JSON.parse(raw) as WaitlistEntry[];
+    return JSON.parse(await fs.readFile(STORE, "utf8")) as WaitlistEntry[];
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw err;
@@ -44,29 +46,68 @@ export async function POST(request: Request) {
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const state = typeof body.state_interested === "string" ? body.state_interested.trim() : "GA";
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  if (!emailOk) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Please provide a valid email." }, { status: 400 });
   }
 
-  const entries = await readStore();
-  const existing = entries.find((e) => e.email === email);
-  if (existing) {
-    return NextResponse.json({ ok: true, alreadyOnList: true });
+  // ---- Supabase path ----
+  if (hasSupabaseEnv() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const sb = createServiceClient();
+
+    const { data: existing } = await sb
+      .from("waitlist")
+      .select("id, email_sent")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({ ok: true, alreadyOnList: true });
+    }
+
+    const { error: insertErr } = await sb
+      .from("waitlist")
+      .insert({ email, state_interested: state || "GA" });
+
+    if (insertErr) {
+      return NextResponse.json({ error: insertErr.message }, { status: 500 });
+    }
+
+    // Fire welcome email (best effort).
+    try {
+      const result = await sendWaitlistWelcome(email, state || "GA");
+      if ("sent" in result) {
+        await sb.from("waitlist").update({ email_sent: true }).eq("email", email);
+      }
+    } catch (err) {
+      console.error("[waitlist] email failed:", err);
+    }
+
+    return NextResponse.json({ ok: true, alreadyOnList: false });
   }
 
-  const entry: WaitlistEntry = {
+  // ---- Local JSON stub path (no Supabase configured yet) ----
+  const entries = await readStore();
+  if (entries.some((e) => e.email === email)) {
+    return NextResponse.json({ ok: true, alreadyOnList: true });
+  }
+  entries.push({
     email,
     state_interested: state || "GA",
     created_at: new Date().toISOString(),
-  };
-  entries.push(entry);
+  });
   await writeStore(entries);
 
-  return NextResponse.json({ ok: true, alreadyOnList: false });
+  return NextResponse.json({ ok: true, alreadyOnList: false, stub: true });
 }
 
 export async function GET() {
+  if (hasSupabaseEnv() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const sb = createServiceClient();
+    const { count } = await sb
+      .from("waitlist")
+      .select("*", { count: "exact", head: true });
+    return NextResponse.json({ count: count ?? 0 });
+  }
   const entries = await readStore();
   return NextResponse.json({ count: entries.length });
 }
