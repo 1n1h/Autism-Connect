@@ -67,8 +67,8 @@ export default async function DashboardPage() {
             href="/blog"
             icon={Users}
             title="Community"
-            blurb="Blog + parent feed."
-            ready={false}
+            blurb="Blog posts, stories, and tips from other parents."
+            ready={true}
             accent="bg-teal-100 text-teal-600"
           />
           <FeatureTile
