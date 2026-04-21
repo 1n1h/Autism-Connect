@@ -39,3 +39,10 @@ next-env.d.ts
 
 # local dev waitlist store (temp until Supabase is wired)
 /data/waitlist.json
+
+# Personal files accidentally dropped into project dir
+zayimages/
+*.mp4
+.DS_Store
+Thumbs.db
+
