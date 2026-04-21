@@ -380,13 +380,9 @@ create policy "Admins read admin list"
   using (public.is_admin());
 
 -- ============================================================
--- Storage buckets (run once)
--- Use the Supabase dashboard → Storage to create:
---   - avatars (public)
---   - blog-images (public)
--- Or run:
--- insert into storage.buckets (id, name, public) values
---   ('avatars', 'avatars', true),
---   ('blog-images', 'blog-images', true)
--- on conflict (id) do nothing;
+-- Storage buckets + policies
+-- Run db/storage_setup.sql after this file. It creates the
+-- `avatars` and `blog-images` public buckets and RLS policies
+-- restricting writes so users can only write under their own
+-- user_id folder.
 -- ============================================================
