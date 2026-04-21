@@ -76,7 +76,7 @@ export default async function DashboardPage() {
             icon={MessageCircle}
             title="Messages"
             blurb="Direct messages with other parents."
-            ready={false}
+            ready={true}
             accent="bg-sunny-200 text-plum-900"
           />
           <FeatureTile
