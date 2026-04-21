@@ -13,15 +13,20 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: sub }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan_type, status, current_period_end")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
 
   if (!profile?.onboarded) redirect("/onboarding");
 
   const displayName = profile?.first_name || user.email?.split("@")[0] || "there";
+  const tier = sub?.plan_type ?? "free";
 
   return (
     <div className="min-h-screen bg-cream">
@@ -89,10 +94,9 @@ export default async function DashboardPage() {
           />
         </section>
 
-        <section className="mt-10 rounded-3xl border border-plum-800/5 bg-white p-8 shadow-soft">
-          <h2 className="font-display text-2xl font-bold text-plum-900">
-            Your profile
-          </h2>
+        <section className="mt-10 grid gap-6 md:grid-cols-[2fr_1fr]">
+          <div className="rounded-3xl border border-plum-800/5 bg-white p-8 shadow-soft">
+            <h2 className="font-display text-2xl font-bold text-plum-900">Your profile</h2>
           <div className="mt-5 grid gap-6 md:grid-cols-[auto_1fr]">
             <div>
               {profile?.profile_photo_url ? (
@@ -126,6 +130,31 @@ export default async function DashboardPage() {
                 Edit profile →
               </Link>
             </div>
+          </div>
+          </div>
+
+          {/* Subscription card */}
+          <div className="rounded-3xl border border-plum-800/5 bg-white p-8 shadow-soft">
+            <div className="text-xs font-bold uppercase tracking-wider text-plum-800/60">
+              Your plan
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-display text-3xl font-bold capitalize text-plum-900">{tier}</span>
+              {tier === "free" && (
+                <span className="text-sm text-plum-800/60">· always free</span>
+              )}
+            </div>
+            {sub?.current_period_end && (
+              <div className="mt-1 text-xs text-plum-800/60">
+                Renews {new Date(sub.current_period_end).toLocaleDateString()}
+              </div>
+            )}
+            <Link
+              href="/pricing"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-coral-500 px-5 py-2.5 text-sm font-bold text-white shadow-soft transition hover:bg-coral-600"
+            >
+              {tier === "free" ? "See paid plans →" : "Manage plan →"}
+            </Link>
           </div>
         </section>
       </main>
