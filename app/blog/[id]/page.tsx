@@ -25,7 +25,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   if (!post) notFound();
   const comments = await listComments(params.id);
 
-  let authed: { id: string; name: string; photo: string | null } | null = null;
+  let authed: { id: string; name: string; photo: string | null; isAdmin: boolean } | null = null;
   if (hasSupabaseEnv()) {
     try {
       const supabase = createClient();
@@ -33,13 +33,14 @@ export default async function BlogPostPage({ params }: PageProps) {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("first_name, profile_photo_url")
+          .select("first_name, profile_photo_url, is_admin")
           .eq("id", user.id)
           .maybeSingle();
         authed = {
           id: user.id,
           name: profile?.first_name ?? user.email?.split("@")[0] ?? "You",
           photo: profile?.profile_photo_url ?? null,
+          isAdmin: profile?.is_admin ?? false,
         };
       }
     } catch { /* non-fatal */ }
@@ -52,7 +53,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-cream">
       {authed ? (
-        <DashboardNav displayName={authed.name} photoUrl={authed.photo} />
+        <DashboardNav displayName={authed.name} photoUrl={authed.photo} isAdmin={authed.isAdmin} />
       ) : (
         <header className="sticky top-0 z-20 border-b border-plum-800/5 bg-cream/80 backdrop-blur">
           <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">

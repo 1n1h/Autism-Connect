@@ -1,4 +1,4 @@
-import { getAdminFromCookie } from "@/lib/admin/auth";
+import { getAdminFromSession } from "@/lib/admin/session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { toCsv, csvResponseHeaders, todayStamp } from "@/lib/admin/csv";
@@ -6,7 +6,7 @@ import { toCsv, csvResponseHeaders, todayStamp } from "@/lib/admin/csv";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const admin = await getAdminFromCookie();
+  const admin = await getAdminFromSession();
   if (!admin) return new Response("Unauthorized", { status: 401 });
   if (!hasSupabaseEnv() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return new Response("Server not configured", { status: 500 });

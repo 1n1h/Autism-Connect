@@ -11,7 +11,7 @@ export const metadata = { title: "Community — AutismConnect" };
 export default async function BlogIndexPage() {
   const posts = await listPosts({ limit: 100 });
 
-  let authed: { name: string; photo: string | null } | null = null;
+  let authed: { name: string; photo: string | null; isAdmin: boolean } | null = null;
   if (hasSupabaseEnv()) {
     try {
       const supabase = createClient();
@@ -19,12 +19,13 @@ export default async function BlogIndexPage() {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("first_name, profile_photo_url")
+          .select("first_name, profile_photo_url, is_admin")
           .eq("id", user.id)
           .maybeSingle();
         authed = {
           name: profile?.first_name ?? user.email?.split("@")[0] ?? "You",
           photo: profile?.profile_photo_url ?? null,
+          isAdmin: profile?.is_admin ?? false,
         };
       }
     } catch { /* non-fatal */ }
@@ -33,7 +34,7 @@ export default async function BlogIndexPage() {
   return (
     <div className="min-h-screen bg-cream">
       {authed ? (
-        <DashboardNav displayName={authed.name} photoUrl={authed.photo} />
+        <DashboardNav displayName={authed.name} photoUrl={authed.photo} isAdmin={authed.isAdmin} />
       ) : (
         <PublicHeader />
       )}

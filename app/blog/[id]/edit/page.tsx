@@ -21,7 +21,7 @@ export default async function BlogEditPage({ params }: { params: { id: string } 
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("first_name, profile_photo_url")
+    .select("first_name, profile_photo_url, is_admin")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -30,6 +30,7 @@ export default async function BlogEditPage({ params }: { params: { id: string } 
       <DashboardNav
         displayName={profile?.first_name ?? user.email?.split("@")[0] ?? "You"}
         photoUrl={profile?.profile_photo_url ?? null}
+        isAdmin={profile?.is_admin ?? false}
       />
 
       <main className="mx-auto max-w-3xl px-6 py-10">

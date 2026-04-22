@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Shield } from "lucide-react";
 
 export function DashboardNav({
   displayName,
   photoUrl,
+  isAdmin = false,
 }: {
   displayName: string;
   photoUrl: string | null;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
 
@@ -38,7 +40,17 @@ export function DashboardNav({
           <NavLink href="/messages">Messages</NavLink>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              title="Admin dashboard"
+              className="inline-flex items-center gap-1.5 rounded-full bg-plum-800 px-3 py-1.5 text-xs font-bold text-cream shadow-soft transition hover:bg-plum-700"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Admin</span>
+            </Link>
+          )}
           <Link
             href="/profile/edit"
             className="flex items-center gap-2 rounded-full border border-plum-800/10 bg-white px-2 py-1.5 pr-3 text-sm font-semibold text-plum-900 transition hover:border-plum-800/25"

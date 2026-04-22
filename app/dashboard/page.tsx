@@ -33,6 +33,7 @@ export default async function DashboardPage() {
       <DashboardNav
         displayName={displayName}
         photoUrl={profile?.profile_photo_url ?? null}
+        isAdmin={profile?.is_admin ?? false}
       />
 
       <main className="relative mx-auto max-w-7xl px-6 py-10">

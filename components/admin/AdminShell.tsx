@@ -10,6 +10,7 @@ import {
   BookOpen,
   CreditCard,
   LogOut,
+  ArrowLeft,
 } from "lucide-react";
 
 const NAV = [
@@ -32,8 +33,8 @@ export function AdminShell({
   const router = useRouter();
 
   async function handleSignOut() {
-    await fetch("/api/admin/auth/logout", { method: "POST" });
-    router.push("/admin/login");
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
     router.refresh();
   }
 
@@ -53,6 +54,13 @@ export function AdminShell({
             </span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 rounded-full border border-plum-800/10 bg-white px-3 py-1.5 text-xs font-bold text-plum-800/70 transition hover:border-plum-800/30 hover:text-plum-900"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to app
+            </Link>
             <span className="hidden text-xs text-plum-800/60 sm:inline">{adminEmail}</span>
             <button
               onClick={handleSignOut}

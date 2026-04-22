@@ -50,13 +50,25 @@ export function AdminsManager() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Couldn't send invite.");
+      const promoted = data.mode === "promoted";
+      const target = email;
       setEmail("");
       if (data.emailSent) {
-        setMessage({ tone: "ok", text: `Invite sent to ${email}.` });
+        setMessage({
+          tone: "ok",
+          text: promoted
+            ? `${target} was already a member — now they're an admin. Email sent.`
+            : `Invite sent to ${target}. They become an admin on signup.`,
+        });
       } else if (data.emailSkipped) {
-        setMessage({ tone: "ok", text: `Invite created, but Resend isn't configured. Share the accept link manually.` });
+        setMessage({
+          tone: "ok",
+          text: promoted
+            ? `${target} is now an admin (they already had an account). No email sent — Resend not configured.`
+            : `Invite saved for ${target}. No email sent — Resend not configured. Share signup link manually.`,
+        });
       } else if (data.emailReason) {
-        setMessage({ tone: "err", text: `Invite saved, but email failed: ${data.emailReason}` });
+        setMessage({ tone: "err", text: `Access granted but email failed: ${data.emailReason}` });
       }
       await load();
     } catch (err) {
@@ -167,11 +179,7 @@ export function AdminsManager() {
                 </div>
                 <div className="text-right text-xs text-plum-800/50">
                   <div>{a.role ?? "admin"}</div>
-                  <div>
-                    {a.last_login
-                      ? `Last login ${new Date(a.last_login).toLocaleDateString()}`
-                      : "Never signed in"}
-                  </div>
+                  <div>Joined {new Date(a.created_at).toLocaleDateString()}</div>
                 </div>
               </li>
             ))}

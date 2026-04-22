@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getAdminFromCookie } from "@/lib/admin/auth";
+import { getAdminFromSession } from "@/lib/admin/session";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const admin = await getAdminFromCookie();
+  const admin = await getAdminFromSession();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(request.url);

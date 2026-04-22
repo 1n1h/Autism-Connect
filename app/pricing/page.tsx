@@ -7,14 +7,14 @@ import { PricingCards } from "@/components/pricing/PricingCards";
 export const metadata = { title: "Plans — AutismConnect" };
 
 export default async function PricingPage() {
-  let authed: { id: string; name: string; photo: string | null; tier: string } | null = null;
+  let authed: { id: string; name: string; photo: string | null; tier: string; isAdmin: boolean } | null = null;
   if (hasSupabaseEnv()) {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const [{ data: profile }, { data: sub }] = await Promise.all([
-          supabase.from("profiles").select("first_name, profile_photo_url").eq("id", user.id).maybeSingle(),
+          supabase.from("profiles").select("first_name, profile_photo_url, is_admin").eq("id", user.id).maybeSingle(),
           supabase
             .from("subscriptions")
             .select("plan_type, status")
@@ -27,6 +27,7 @@ export default async function PricingPage() {
           name: profile?.first_name ?? user.email?.split("@")[0] ?? "You",
           photo: profile?.profile_photo_url ?? null,
           tier: sub?.plan_type ?? "free",
+          isAdmin: profile?.is_admin ?? false,
         };
       }
     } catch { /* non-fatal */ }
@@ -35,7 +36,7 @@ export default async function PricingPage() {
   return (
     <div className="min-h-screen bg-cream">
       {authed ? (
-        <DashboardNav displayName={authed.name} photoUrl={authed.photo} />
+        <DashboardNav displayName={authed.name} photoUrl={authed.photo} isAdmin={authed.isAdmin} />
       ) : (
         <PublicHeader />
       )}
