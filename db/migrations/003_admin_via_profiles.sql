@@ -1,6 +1,30 @@
 -- Phase 8: unify admin access under profiles.is_admin.
 -- The separate admin_users table + custom JWT login is deprecated.
 -- Admins are now regular Supabase-auth users with profiles.is_admin = true.
+--
+-- Self-contained — safe to run even if migration 002 was skipped.
+
+-- ============================================================
+-- Prerequisites: admin_invites table + profiles.suspended column.
+-- (Originally in db/migrations/002_admin_invites.sql; included here
+--  for idempotency.)
+-- ============================================================
+create table if not exists public.admin_invites (
+  id uuid primary key default uuid_generate_v4(),
+  email varchar(255) not null,
+  token varchar(128) unique not null,
+  created_by uuid,
+  accepted_at timestamptz,
+  expires_at timestamptz not null default (now() + interval '7 days'),
+  created_at timestamptz default now()
+);
+
+create index if not exists admin_invites_token_idx on public.admin_invites (token);
+create index if not exists admin_invites_email_idx on public.admin_invites (email);
+
+alter table public.admin_invites enable row level security;
+
+alter table public.profiles add column if not exists suspended boolean default false;
 
 -- ============================================================
 -- Update handle_new_user trigger to consume a pending admin_invite
